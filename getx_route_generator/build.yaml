@@ -1,0 +1,16 @@
+builders:
+    getx_route_table_generator:
+        import: "package:getx_route_generator/src/builder.dart"
+        builder_factories: ["getXRouteTableGenerator"]
+        build_extensions: { ".dart": [".getx_table"] }
+        auto_apply: dependents
+        build_to: source
+        required_inputs: [".table.json"]
+
+    getx_route_annotation_scan:
+        import: "package:getx_route_generator/src/builder.dart"
+        builder_factories: ["getXRouteScanAnnotation"]
+        build_extensions: { ".dart": [".table.json"] }
+        auto_apply: dependents
+        build_to: cache
+        applies_builders: ["getx_route_generator|getx_route_table_generator"]

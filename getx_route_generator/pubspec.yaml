@@ -1,0 +1,25 @@
+name: getx_route_generator
+description: getx_route_generator is a code generation library based on build_runner, designed to generate a route table for pages using the GetX library. Say goodbye to manually writing route paths and GetPage mappings.
+version: 1.0.2
+repository: https://github.com/panyiho/getx_route_generator
+topics:
+  - getxroutegenerator
+  - getx
+  - getpage
+  - route
+  - buildrunner
+
+environment:
+  sdk: ">=2.12.0 <4.0.0"
+
+
+dependencies:
+  build_runner: ^2.1.5
+  build: ^2.1.1
+  source_gen: ^1.2.7
+  glob: ^2.0.1
+  getx_route_annotations: ^1.0.0
+
+dev_dependencies:
+  lints: ^2.1.0
+  test: ^1.24.0
