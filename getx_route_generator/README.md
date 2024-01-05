@@ -42,4 +42,30 @@ class RouteTable {
   ];
 }
 ```
-It's that simple!
+
+### Bindings
+If you need to add a binding for the GetPage, you can use the following method to add the required controllers or objects. Add the dependencies parameter within the GetXRoutePage annotation, passing an array.
+ ``` dart 
+@GetXRoutePage("/home",, dependencies:[XController,XXController,XXXController])    
+class HomePage extends StatefulWidget {}    
+```
+The generated code looks like this:
+``` dart
+class RouteTable {
+  static const String home = '/home';
+
+  static final List<GetPage> pages = [
+    GetPage(
+      name: '/home',
+      page: () => HomePage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<XController>(() => XController());
+        Get.lazyPut<XXController>(() => XXController());
+        Get.lazyPut<XXXController>(() => XXXController());
+      }),
+    ),
+  ];
+}
+
+```
+That's it!

@@ -1,5 +1,7 @@
 class GetXRoutePage {
   final String routeName;
 
-  const GetXRoutePage(this.routeName);
+  final List<Type> dependencies;
+
+  const GetXRoutePage(this.routeName, {this.dependencies = const []});
 }

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:build/build.dart';
+import 'package:dart_style/dart_style.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:glob/glob.dart';
 import 'package:source_gen/source_gen.dart';
@@ -23,14 +24,29 @@ class GetXRouteScanAnnotationBuilder extends Builder {
     )) {
       final routeName =
           annotatedElement.annotation.read("routeName").stringValue;
+      final typeList =
+          annotatedElement.annotation.read("dependencies").listValue;
+      Set<String> imports = {};
+      Set<String> dependencies = {};
+      for (var element in typeList) {
+        dependencies.add(element.toTypeValue()?.element?.displayName ?? "");
+        var importStr =
+            element.toTypeValue()?.element?.library?.source.uri.toString();
+        if (importStr != null && importStr.isNotEmpty) {
+          imports.add("import '$importStr';");
+        }
+      }
       final className = annotatedElement.element.name;
-      var import =
-          "import 'package:${buildStep.inputId.package}/${annotatedElement.element.source?.fullName.split('/lib/')[1]}';";
+      imports.add(
+          "import 'package:${buildStep.inputId.package}/${annotatedElement.element.source?.fullName.split('/lib/')[1]}';");
       routesMap[className!] =
           'GetPage(name: \'$routeName\', page: () => $className()),';
 
-      var item =
-          RouteItem(routeName: routeName, import: import, className: className);
+      var item = RouteItem(
+          routeName: routeName,
+          import: imports,
+          className: className,
+          dependencies: dependencies);
       buildStep.writeAsString(
           buildStep.inputId.changeExtension(".table.json"), item.toJson());
     }
@@ -43,13 +59,12 @@ class GetXRouteScanAnnotationBuilder extends Builder {
 }
 
 class GetXRouteTableGenerateBuilder extends Builder {
-  final routesMap = <String, String>{};
-  var imports = [];
+  final routesMap = <String, RouteItem>{};
+  var imports = <String>{};
   bool hasGenerate = false;
 
   @override
   FutureOr<void> build(BuildStep buildStep) async {
-    print("!!!!GetXRouteTableGenerateBuilder");
     if (hasGenerate) {
       return;
     }
@@ -57,8 +72,8 @@ class GetXRouteTableGenerateBuilder extends Builder {
 
     await for (final asset in buildStep.findAssets(Glob("**.table.json"))) {
       var item = RouteItem.fromJson(await buildStep.readAsString(asset));
-      imports.add(item.import);
-      routesMap[item.routeName] = item.className;
+      imports.addAll(item.import);
+      routesMap[item.routeName] = item;
       print(item.toJson());
     }
 
@@ -73,7 +88,7 @@ class GetXRouteTableGenerateBuilder extends Builder {
     }
     stringBuffer.writeln("");
     stringBuffer.writeln('class RouteTable {');
-    routesMap.forEach((route, className) {
+    routesMap.forEach((route, item) {
       var routeVariableName = route;
       if (route == "/") {
         routeVariableName = "mainPage";
@@ -91,9 +106,19 @@ class GetXRouteTableGenerateBuilder extends Builder {
     stringBuffer.writeln('');
 
     stringBuffer.writeln('  static final List<GetPage> pages = [');
-    routesMap.forEach((routeName, className) {
-      stringBuffer.writeln(
-          '    GetPage(name: \'$routeName\', page: () => $className()),');
+    routesMap.forEach((routeName, item) {
+      stringBuffer.write(
+          '    GetPage(name: \'$routeName\', page: () => ${item.className}(),');
+      if (item.dependencies.isNotEmpty) {
+        stringBuffer.writeln("binding: BindingsBuilder(() {");
+        for (var dependence in item.dependencies) {
+          stringBuffer
+              .writeln("    Get.lazyPut<$dependence>(() => $dependence());");
+        }
+        stringBuffer.writeln(" }),");
+      }
+
+      stringBuffer.writeln('),');
     });
     stringBuffer.writeln('  ];');
     stringBuffer.writeln('}');
@@ -103,7 +128,8 @@ class GetXRouteTableGenerateBuilder extends Builder {
     if (!await file.exists()) {
       await file.create(recursive: true);
     }
-    await file.writeAsString(stringBuffer.toString());
+    var formatter = DartFormatter();
+    await file.writeAsString(formatter.format(stringBuffer.toString()));
   }
 
   @override
@@ -114,39 +140,36 @@ class GetXRouteTableGenerateBuilder extends Builder {
 
 class RouteItem {
   String routeName;
-  String import;
+  Set<String> import;
   String className;
+  Set<String> dependencies;
   RouteItem({
     this.routeName = '',
-    this.import = '',
+    this.import = const {},
     this.className = '',
+    this.dependencies = const {},
   });
-
-  RouteItem copyWith({
-    String? routeName,
-    String? import,
-    String? className,
-  }) {
-    return RouteItem(
-      routeName: routeName ?? this.routeName,
-      import: import ?? this.import,
-      className: className ?? this.className,
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'routeName': routeName,
-      'import': import,
+      'import': import.toList(),
       'className': className,
+      'dependencies': dependencies.toList(),
     };
   }
 
   factory RouteItem.fromMap(Map<String, dynamic> map) {
     return RouteItem(
       routeName: (map['routeName'] ?? '') as String,
-      import: (map['import'] ?? '') as String,
+      import:
+          (map['import'] as List<dynamic>?)?.map((e) => e as String).toSet() ??
+              const {},
       className: (map['className'] ?? '') as String,
+      dependencies: (map['dependencies'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toSet() ??
+          const {},
     );
   }
 
@@ -154,20 +177,4 @@ class RouteItem {
 
   factory RouteItem.fromJson(String source) =>
       RouteItem.fromMap(json.decode(source) as Map<String, dynamic>);
-
-  @override
-  String toString() =>
-      'RouteItem(routeName: $routeName, import: $import, className: $className)';
-
-  @override
-  bool operator ==(covariant RouteItem other) {
-    if (identical(this, other)) return true;
-
-    return other.routeName == routeName &&
-        other.import == import &&
-        other.className == className;
-  }
-
-  @override
-  int get hashCode => routeName.hashCode ^ import.hashCode ^ className.hashCode;
 }

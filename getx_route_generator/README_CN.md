@@ -42,4 +42,32 @@ class RouteTable {
 
 ```
 
+### bindings
+ 如果你需要添加GetPage的binding,可以用如下方法添加需要的Controller或者对象。就是在`GetXRoutePage`注解里面添加参数dependencies，需要传入一个数组。
+ ``` dart 
+@GetXRoutePage("/home",, dependencies:[XController,XXController,XXXController])    
+class HomePage extends StatefulWidget {}    
+```
+
+生成的代码如下：
+``` dart
+class RouteTable {
+  static const String home = '/home';
+
+  static final List<GetPage> pages = [
+    GetPage(
+      name: '/home',
+      page: () => HomePage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<XController>(() => XController());
+        Get.lazyPut<XXController>(() => XXController());
+        Get.lazyPut<XXXController>(() => XXXController());
+      }),
+    ),
+  ];
+}
+
+```
+getx_route_generator会生成GetPage的binding代码
+
 就这么简单！
