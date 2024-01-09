@@ -43,7 +43,11 @@ class RouteTable {
 }
 ```
 
-Bindings
+Certainly, you can also use the watch command, so you don't have to rerun the build command every time you make changes to the route pages.
+```  
+flutter pub run build_runner watch
+```
+### Bindings
 If you need to add a binding for the GetPage, you can use the following method to add the required controllers or objects. Add the dependencies parameter within the GetXRoutePage annotation, passing an array.
  ``` dart 
 @GetXRoutePage("/home",, dependencies:[XController,XXController,XXXController])    

@@ -18,3 +18,7 @@
 ## 1.1.1
 
 - update the version of dependencies.
+
+## 1.1.2
+
+- optimizing the logic of generating code for builders.

@@ -1,13 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:build/build.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:glob/glob.dart';
 import 'package:source_gen/source_gen.dart';
+import 'package:path/path.dart' as p;
 
 class GetXRouteScanAnnotationBuilder extends Builder {
   @override
@@ -59,22 +58,14 @@ class GetXRouteScanAnnotationBuilder extends Builder {
 }
 
 class GetXRouteTableGenerateBuilder extends Builder {
-  final routesMap = <String, RouteItem>{};
-  var imports = <String>{};
-  bool hasGenerate = false;
-
   @override
   FutureOr<void> build(BuildStep buildStep) async {
-    if (hasGenerate) {
-      return;
-    }
-    hasGenerate = true;
-
+    final routesMap = <String, RouteItem>{};
+    var imports = <String>{};
     await for (final asset in buildStep.findAssets(Glob("**.table.json"))) {
       var item = RouteItem.fromJson(await buildStep.readAsString(asset));
       imports.addAll(item.import);
       routesMap[item.routeName] = item;
-      print(item.toJson());
     }
 
     if (routesMap.isEmpty) {
@@ -124,18 +115,21 @@ class GetXRouteTableGenerateBuilder extends Builder {
     stringBuffer.writeln('}');
     stringBuffer.writeln('');
 
-    var file = File("lib/generated/route_table.dart");
-    if (!await file.exists()) {
-      await file.create(recursive: true);
-    }
     var formatter = DartFormatter();
-    await file.writeAsString(formatter.format(stringBuffer.toString()));
+    await buildStep.writeAsString(
+        AssetId(
+          buildStep.inputId.package,
+          p.join('lib', "generated", 'route_table.dart'),
+        ),
+        formatter.format(stringBuffer.toString()));
   }
 
   @override
-  Map<String, List<String>> get buildExtensions => {
-        ".dart": ["*.dart"]
-      };
+  Map<String, List<String>> get buildExtensions {
+    return const {
+      r'$lib$': ['/generated/route_table.dart'],
+    };
+  }
 }
 
 class RouteItem {

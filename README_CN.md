@@ -42,6 +42,10 @@ class RouteTable {
 
 ```
 
+当然，你也可以用`watch`命令，这样就不用每次修改了路由页面都要重新执行build命令了。
+```  
+flutter pub run build_runner watch
+```
 ### bindings
  如果你需要添加GetPage的binding,可以用如下方法添加需要的Controller或者对象。就是在`GetXRoutePage`注解里面添加参数dependencies，需要传入一个数组。
  ``` dart 
